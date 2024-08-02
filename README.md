@@ -8,7 +8,7 @@ I'm working on improving and adding new features. Please feel free to contribute
 
 ## Example usage
 
-Check out the [example files](https://github.com/danrusei/danube/tree/main/danube-client/examples).
+Check out the [example files](https://github.com/danrusei/danube-go/tree/main/examples).
 
 ### Producer
 
@@ -34,7 +34,11 @@ func main() {
     jsonSchema := `{"type": "object", "properties": {"field1": {"type": "string"}, "field2": {"type": "integer"}}}`
 
     ctx := context.Background()
-    producer, err := client.NewProducer(ctx).WithName("test_producer").WithTopic(topic).WithSchema("test_schema", danube.SchemaType_JSON, jsonSchema).Build()
+    producer, err := client.NewProducer(ctx)
+                     .WithName("test_producer")
+                     .WithTopic(topic)
+                     .WithSchema("test_schema", danube.SchemaType_JSON, jsonSchema)
+                     .Build()
     if err != nil {
      log.Fatalf("unable to initialize the producer: %v", err)
     }
@@ -94,7 +98,11 @@ func main() {
     subType := danube.Exclusive
 
     ctx := context.Background()
-    consumer, err := client.NewConsumer(ctx).WithConsumerName("test_consumer").WithTopic(topic).WithSubscription("test_subscription").WithSubscriptionType(subType).Build()
+    consumer, err := client.NewConsumer(ctx)
+                    .WithConsumerName("test_consumer")
+                    .WithTopic(topic)
+                    .WithSubscription("test_subscription")
+                    .WithSubscriptionType(subType).Build()
   if err != nil {
     log.Fatalf("Failed to initialize the consumer: %v", err)
     }
