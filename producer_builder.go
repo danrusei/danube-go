@@ -59,5 +59,5 @@ func (pb *ProducerBuilder) Build() (*Producer, error) {
 
 type ProducerOptions struct {
 	// not used yet
-	others string
+	//others string
 }
