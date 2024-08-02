@@ -2,6 +2,8 @@ package danube
 
 import (
 	"context"
+	"net"
+	"time"
 
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
@@ -9,29 +11,43 @@ import (
 	"google.golang.org/grpc/keepalive"
 )
 
+// RpcConnection wraps a gRPC client connection.
 type RpcConnection struct {
 	grpcConn *grpc.ClientConn
 }
 
-func newRpcConnection(options *ConnectionOptions, connectURL string) (*RpcConnection, error) {
-	dialOptions := []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()), // For development only. Use secure credentials in production.
-	}
+// DialOption is a function that configures gRPC dial options.
+type DialOption func(*[]grpc.DialOption)
 
-	if options.KeepAliveInterval > 0 {
-		dialOptions = append(dialOptions, grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time: options.KeepAliveInterval,
+// WithKeepAliveInterval configures the keepalive interval for the connection.
+func WithKeepAliveInterval(interval time.Duration) DialOption {
+	return func(opts *[]grpc.DialOption) {
+		*opts = append(*opts, grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time: interval,
 		}))
 	}
+}
 
-	if options.ConnectionTimeout > 0 {
-		ctx, cancel := context.WithTimeout(context.Background(), options.ConnectionTimeout)
-		defer cancel()
-		conn, err := grpc.DialContext(ctx, connectURL, dialOptions...)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to connect")
-		}
-		return &RpcConnection{grpcConn: conn}, nil
+// WithConnectionTimeout configures the connection timeout for the connection.
+func WithConnectionTimeout(timeout time.Duration) DialOption {
+	return func(opts *[]grpc.DialOption) {
+		*opts = append(*opts, grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
+			dialer := &net.Dialer{Timeout: timeout}
+			return dialer.DialContext(ctx, "tcp", addr)
+		}))
+	}
+}
+
+// NewRpcConnection creates a new RpcConnection with the given options.
+func NewRpcConnection(connectURL string, options ...DialOption) (*RpcConnection, error) {
+	var dialOptions []grpc.DialOption
+
+	// Apply default options
+	dialOptions = append(dialOptions, grpc.WithTransportCredentials(insecure.NewCredentials()))
+
+	// Apply additional options
+	for _, opt := range options {
+		opt(&dialOptions)
 	}
 
 	conn, err := grpc.NewClient(connectURL, dialOptions...)

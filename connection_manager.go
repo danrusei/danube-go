@@ -17,19 +17,18 @@ type ConnectionStatus struct {
 }
 
 type ConnectionManager struct {
-	connections       map[BrokerAddress]*ConnectionStatus
-	connectionsMutex  sync.Mutex
-	ConnectionOptions ConnectionOptions
+	connections      map[BrokerAddress]*ConnectionStatus
+	connectionsMutex sync.Mutex
 }
 
-func NewConnectionManager(options ConnectionOptions) *ConnectionManager {
+// NewConnectionManager creates a new ConnectionManager.
+func NewConnectionManager() *ConnectionManager {
 	return &ConnectionManager{
-		connections:       make(map[BrokerAddress]*ConnectionStatus),
-		ConnectionOptions: options,
+		connections: make(map[BrokerAddress]*ConnectionStatus),
 	}
 }
 
-func (cm *ConnectionManager) GetConnection(ctx context.Context, brokerURL, connectURL string) (*RpcConnection, error) {
+func (cm *ConnectionManager) GetConnection(ctx context.Context, brokerURL, connectURL string, options ...DialOption) (*RpcConnection, error) {
 	cm.connectionsMutex.Lock()
 	defer cm.connectionsMutex.Unlock()
 
@@ -45,7 +44,7 @@ func (cm *ConnectionManager) GetConnection(ctx context.Context, brokerURL, conne
 		return status.Connected, nil
 	}
 
-	rpcConn, err := newRpcConnection(&cm.ConnectionOptions, connectURL)
+	rpcConn, err := NewRpcConnection(connectURL, options...)
 	if err != nil {
 		return nil, err
 	}

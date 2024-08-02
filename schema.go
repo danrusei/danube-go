@@ -2,7 +2,8 @@ package danube
 
 import (
 	"fmt"
-	// Adjust the import path for your generated protobuf code
+
+	"github.com/danrusei/danube-go/proto"
 )
 
 type SchemaType int32
@@ -33,39 +34,39 @@ func NewSchema(name string, schemaType SchemaType, jsonSchema string) *Schema {
 }
 
 // Convert SchemaType to Protobuf representation
-func (s SchemaType) ToProto() proto.schema_pb.TypeSchema {
+func (s SchemaType) ToProto() proto.Schema_TypeSchema {
 	switch s {
 	case SchemaType_BYTES:
-		return schema_pb.TypeSchema_BYTES
+		return proto.Schema_Bytes
 	case SchemaType_STRING:
-		return schema_pb.TypeSchema_STRING
+		return proto.Schema_String
 	case SchemaType_INT64:
-		return schema_pb.TypeSchema_INT64
+		return proto.Schema_Int64
 	case SchemaType_JSON:
-		return schema_pb.TypeSchema_JSON
+		return proto.Schema_JSON
 	default:
-		return schema_pb.TypeSchema_UNKNOWN
+		return proto.Schema_String
 	}
 }
 
 // Convert Protobuf TypeSchema to SchemaType
-func FromProtoTypeSchema(protoSchema schema_pb.TypeSchema) SchemaType {
+func FromProtoTypeSchema(protoSchema proto.Schema_TypeSchema) SchemaType {
 	switch protoSchema {
-	case schema_pb.TypeSchema_BYTES:
+	case proto.Schema_Bytes:
 		return SchemaType_BYTES
-	case schema_pb.TypeSchema_STRING:
+	case proto.Schema_String:
 		return SchemaType_STRING
-	case schema_pb.TypeSchema_INT64:
+	case proto.Schema_Int64:
 		return SchemaType_INT64
-	case schema_pb.TypeSchema_JSON:
+	case proto.Schema_JSON:
 		return SchemaType_JSON
 	default:
-		return SchemaType_JSON // Default to JSON if unknown
+		return SchemaType_STRING
 	}
 }
 
 // Convert Protobuf Schema to Schema
-func FromProtoSchema(protoSchema *schema_pb.Schema) (*Schema, error) {
+func FromProtoSchema(protoSchema *proto.Schema) (*Schema, error) {
 	typeSchema := FromProtoTypeSchema(protoSchema.GetTypeSchema())
 	return &Schema{
 		Name:       protoSchema.GetName(),
@@ -75,8 +76,8 @@ func FromProtoSchema(protoSchema *schema_pb.Schema) (*Schema, error) {
 }
 
 // Convert Schema to Protobuf Schema
-func (s *Schema) ToProto() *schema_pb.Schema {
-	return &schema_pb.Schema{
+func (s *Schema) ToProto() *proto.Schema {
+	return &proto.Schema{
 		Name:       s.Name,
 		SchemaData: s.SchemaData,
 		TypeSchema: s.TypeSchema.ToProto(),
@@ -92,7 +93,7 @@ func (s *Schema) JSONSchema() (string, error) {
 }
 
 // Convert Protobuf Schema to JSON
-func ProtoSchemaToJSON(protoSchema *schema_pb.Schema) (string, error) {
+func ProtoSchemaToJSON(protoSchema *proto.Schema) (string, error) {
 	schema, err := FromProtoSchema(protoSchema)
 	if err != nil {
 		return "", err
