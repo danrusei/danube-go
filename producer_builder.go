@@ -10,7 +10,7 @@ type ProducerBuilder struct {
 	producerOptions ProducerOptions
 }
 
-func NewProducerBuilder(client *DanubeClient) *ProducerBuilder {
+func newProducerBuilder(client *DanubeClient) *ProducerBuilder {
 	return &ProducerBuilder{
 		client:          client,
 		topic:           nil,
@@ -30,8 +30,8 @@ func (pb *ProducerBuilder) WithName(producerName string) *ProducerBuilder {
 	return pb
 }
 
-func (pb *ProducerBuilder) WithSchema(schemaName string, schemaType SchemaType) *ProducerBuilder {
-	pb.schema = &Schema{Name: schemaName, TypeSchema: schemaType}
+func (pb *ProducerBuilder) WithSchema(schemaName string, schemaType SchemaType, schemaData string) *ProducerBuilder {
+	pb.schema = NewSchema(schemaName, schemaType, schemaData)
 	return pb
 }
 
@@ -48,7 +48,7 @@ func (pb *ProducerBuilder) Build() (*Producer, error) {
 		return nil, fmt.Errorf("producer name must be set")
 	}
 
-	return NewProducer(
+	return newProducer(
 		pb.client,
 		*pb.topic,
 		*pb.producerName,

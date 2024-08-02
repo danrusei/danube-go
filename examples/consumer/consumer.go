@@ -19,26 +19,29 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	clientBuilder := &danube.DanubeClientBuilder{}
-	clientBuilder.ServiceURL("http://[::1]:6650")
+	clientBuilder.ServiceURL("127.0.0.1:6650")
 	client, err := clientBuilder.Build()
 	if err != nil {
 		log.Fatalf("Failed to create Danube client: %v", err)
 	}
 
 	topic := "/default/test_topic"
-	consumerOptions := danube.ConsumerOptions{} // Customize options as needed
 	subType := danube.Exclusive
 
-	consumer := danube.NewConsumer(client, topic, "test_consumer", "test_subscription", &subType, consumerOptions)
+	ctx := context.Background()
+	consumer, err := client.NewConsumer(ctx).WithConsumerName("test_consumer").WithTopic(topic).WithSubscription("test_subscription").WithSubscriptionType(subType).Build()
+	if err != nil {
+		log.Fatalf("Failed to initialize the consumer: %v", err)
+	}
 
-	consumerID, err := consumer.Subscribe(context.Background())
+	consumerID, err := consumer.Subscribe(ctx)
 	if err != nil {
 		log.Fatalf("Failed to subscribe: %v", err)
 	}
 	log.Printf("The Consumer with ID: %v was created", consumerID)
 
 	// Receiving messages
-	streamClient, err := consumer.Receive(context.Background())
+	streamClient, err := consumer.Receive(ctx)
 	if err != nil {
 		log.Fatalf("Failed to receive messages: %v", err)
 	}

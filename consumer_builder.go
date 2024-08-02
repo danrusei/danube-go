@@ -14,7 +14,7 @@ type ConsumerBuilder struct {
 	consumerOptions  ConsumerOptions
 }
 
-func NewConsumerBuilder(client *DanubeClient) *ConsumerBuilder {
+func newConsumerBuilder(client *DanubeClient) *ConsumerBuilder {
 	return &ConsumerBuilder{client: client}
 }
 
@@ -42,7 +42,7 @@ func (b *ConsumerBuilder) Build() (*Consumer, error) {
 	if b.topic == "" || b.consumerName == "" || b.subscription == "" {
 		return nil, errors.New("missing required fields")
 	}
-	return NewConsumer(b.client, b.topic, b.consumerName, b.subscription, b.subscriptionType, b.consumerOptions), nil
+	return newConsumer(b.client, b.topic, b.consumerName, b.subscription, b.subscriptionType, b.consumerOptions), nil
 }
 
 type ConsumerOptions struct {

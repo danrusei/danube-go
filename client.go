@@ -28,11 +28,11 @@ func NewDanubeClient(builder DanubeClientBuilder) (*DanubeClient, error) {
 }
 
 func (dc *DanubeClient) NewProducer(ctx context.Context) *ProducerBuilder {
-	return NewProducerBuilder(dc)
+	return newProducerBuilder(dc)
 }
 
 func (dc *DanubeClient) NewConsumer(ctx context.Context) *ConsumerBuilder {
-	return NewConsumerBuilder(dc)
+	return newConsumerBuilder(dc)
 }
 
 func (dc *DanubeClient) LookupTopic(ctx context.Context, addr string, topic string) (*LookupResult, error) {

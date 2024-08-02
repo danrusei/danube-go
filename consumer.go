@@ -31,7 +31,7 @@ type Consumer struct {
 	stopSignal       *atomic.Bool
 }
 
-func NewConsumer(
+func newConsumer(
 	client *DanubeClient,
 	topicName, consumerName, subscription string,
 	subType *SubType,

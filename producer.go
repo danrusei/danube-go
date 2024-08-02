@@ -24,7 +24,7 @@ type Producer struct {
 	stopSignal        *atomic.Bool
 }
 
-func NewProducer(
+func newProducer(
 	client *DanubeClient,
 	topic string,
 	producerName string,
@@ -52,7 +52,7 @@ func (p *Producer) Create(ctx context.Context) (uint64, error) {
 	}
 
 	// Set default schema if not specified
-	schema := &Schema{Name: "bytes_schema", TypeSchema: SchemaType_STRING}
+	schema := &Schema{Name: "string_schema", TypeSchema: SchemaType_STRING}
 	if p.schema != nil {
 		schema = p.schema
 	}
