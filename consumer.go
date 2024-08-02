@@ -65,7 +65,6 @@ func (c *Consumer) Subscribe(ctx context.Context) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer conn.Close()
 
 	c.streamClient = proto.NewConsumerServiceClient(conn)
 
