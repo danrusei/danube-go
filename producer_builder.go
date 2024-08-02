@@ -31,7 +31,7 @@ func (pb *ProducerBuilder) WithName(producerName string) *ProducerBuilder {
 }
 
 func (pb *ProducerBuilder) WithSchema(schemaName string, schemaType SchemaType) *ProducerBuilder {
-	pb.schema = &Schema{Name: schemaName, Type: schemaType}
+	pb.schema = &Schema{Name: schemaName, TypeSchema: schemaType}
 	return pb
 }
 
@@ -55,4 +55,9 @@ func (pb *ProducerBuilder) Build() (*Producer, error) {
 		pb.schema,
 		pb.producerOptions,
 	), nil
+}
+
+type ProducerOptions struct {
+	// not used yet
+	others string
 }

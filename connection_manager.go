@@ -17,14 +17,16 @@ type ConnectionStatus struct {
 }
 
 type ConnectionManager struct {
-	connections      map[BrokerAddress]*ConnectionStatus
-	connectionsMutex sync.Mutex
+	connections        map[BrokerAddress]*ConnectionStatus
+	connection_options []DialOption
+	connectionsMutex   sync.Mutex
 }
 
 // NewConnectionManager creates a new ConnectionManager.
-func NewConnectionManager() *ConnectionManager {
+func NewConnectionManager(options []DialOption) *ConnectionManager {
 	return &ConnectionManager{
-		connections: make(map[BrokerAddress]*ConnectionStatus),
+		connections:        make(map[BrokerAddress]*ConnectionStatus),
+		connection_options: options,
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/danrusei/danube-go/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -19,7 +20,7 @@ type Producer struct {
 	messageSequenceID atomic.Uint64
 	schema            *Schema
 	producerOptions   ProducerOptions
-	streamClient      ProducerServiceClient
+	streamClient      proto.ProducerServiceClient
 	stopSignal        *atomic.Bool
 }
 
@@ -40,7 +41,7 @@ func NewProducer(
 		schema:            schema,
 		producerOptions:   producerOptions,
 		streamClient:      nil,
-		stopSignal:        atomic.NewBool(false),
+		stopSignal:        &atomic.Bool{},
 	}
 }
 
@@ -51,17 +52,17 @@ func (p *Producer) Create(ctx context.Context) (uint64, error) {
 	}
 
 	// Set default schema if not specified
-	schema := &Schema{Name: "bytes_schema", Type: SchemaType_STRING}
+	schema := &Schema{Name: "bytes_schema", TypeSchema: SchemaType_STRING}
 	if p.schema != nil {
 		schema = p.schema
 	}
 
-	req := &ProducerRequest{
+	req := &proto.ProducerRequest{
 		RequestId:          p.requestID.Add(1),
 		ProducerName:       p.producerName,
 		TopicName:          p.topic,
 		Schema:             schema.ToProto(),
-		ProducerAccessMode: ProducerAccessMode_SHARED,
+		ProducerAccessMode: proto.ProducerAccessMode_Shared,
 	}
 
 	maxRetries := 4
@@ -76,7 +77,7 @@ func (p *Producer) Create(ctx context.Context) (uint64, error) {
 			// Start health check service
 			stopSignal := p.stopSignal
 			go func() {
-				_ = p.client.healthCheckService.StartHealthCheck(ctx, brokerAddr, 0, *p.producerID, stopSignal)
+				_ = p.client.HealthCheckService.StartHealthCheck(ctx, brokerAddr, 0, *p.producerID, stopSignal)
 			}()
 			return *p.producerID, nil
 		}
@@ -94,7 +95,7 @@ func (p *Producer) Create(ctx context.Context) (uint64, error) {
 		if status.Code(err) == codes.Unavailable {
 			time.Sleep(2 * time.Second)
 
-			addr, lookupErr := p.client.lookupService.HandleLookup(ctx, p.topic)
+			addr, lookupErr := p.client.LookupService.HandleLookup(ctx, brokerAddr, p.topic)
 			if lookupErr != nil {
 				return 0, fmt.Errorf("lookup failed: %v", lookupErr)
 			}
@@ -113,21 +114,17 @@ func (p *Producer) Create(ctx context.Context) (uint64, error) {
 func (p *Producer) Send(ctx context.Context, data []byte) (uint64, error) {
 	publishTime := uint64(time.Now().UnixNano() / int64(time.Millisecond))
 
-	metaData := &MessageMetadata{
+	metaData := &proto.MessageMetadata{
 		ProducerName: p.producerName,
 		SequenceId:   p.messageSequenceID.Add(1),
 		PublishTime:  publishTime,
 	}
 
-	sendMessage := &SendMessage{
+	req := &proto.MessageRequest{
 		RequestId:  p.requestID.Add(1),
 		ProducerId: *p.producerID,
 		Metadata:   metaData,
 		Message:    data,
-	}
-
-	req := &MessageRequest{
-		Message: sendMessage.ToProto(),
 	}
 
 	res, err := p.streamClient.SendMessage(ctx, req)
@@ -139,10 +136,10 @@ func (p *Producer) Send(ctx context.Context, data []byte) (uint64, error) {
 }
 
 func (p *Producer) connect(ctx context.Context, addr string) error {
-	conn, err := p.client.cnxManager.GetConnection(ctx, addr, addr)
+	conn, err := p.client.ConnectionManager.GetConnection(ctx, addr, addr)
 	if err != nil {
 		return err
 	}
-	p.streamClient = NewProducerServiceClient(conn.grpcConn)
+	p.streamClient = proto.NewProducerServiceClient(conn.grpcConn)
 	return nil
 }

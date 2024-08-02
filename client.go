@@ -27,11 +27,11 @@ func NewDanubeClient(builder DanubeClientBuilder) (*DanubeClient, error) {
 	}, nil
 }
 
-func (dc *DanubeClient) NewProducer() *ProducerBuilder {
+func (dc *DanubeClient) NewProducer(ctx context.Context) *ProducerBuilder {
 	return NewProducerBuilder(dc)
 }
 
-func (dc *DanubeClient) NewConsumer() *ConsumerBuilder {
+func (dc *DanubeClient) NewConsumer(ctx context.Context) *ConsumerBuilder {
 	return NewConsumerBuilder(dc)
 }
 
@@ -45,7 +45,7 @@ func (dc *DanubeClient) GetSchema(ctx context.Context, topic string) (*Schema, e
 
 type DanubeClientBuilder struct {
 	URI               string
-	ConnectionOptions ConnectionOptions
+	ConnectionOptions []DialOption
 }
 
 func (b *DanubeClientBuilder) ServiceURL(url string) *DanubeClientBuilder {
@@ -53,7 +53,7 @@ func (b *DanubeClientBuilder) ServiceURL(url string) *DanubeClientBuilder {
 	return b
 }
 
-func (b *DanubeClientBuilder) WithConnectionOptions(options ConnectionOptions) *DanubeClientBuilder {
+func (b *DanubeClientBuilder) WithConnectionOptions(options []DialOption) *DanubeClientBuilder {
 	b.ConnectionOptions = options
 	return b
 }

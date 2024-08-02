@@ -23,12 +23,12 @@ func NewSchemaService(cnxManager *ConnectionManager) *SchemaService {
 
 // GetSchema retrieves the schema for the given topic
 func (ss *SchemaService) GetSchema(ctx context.Context, addr string, topic string) (*Schema, error) {
-	conn, err := ss.CnxManager.GetConnection(ctx, addr)
+	conn, err := ss.CnxManager.GetConnection(ctx, addr, addr)
 	if err != nil {
 		return nil, err
 	}
 
-	client := proto.NewDiscoveryClient(conn)
+	client := proto.NewDiscoveryClient(conn.grpcConn)
 
 	schemaRequest := &proto.SchemaRequest{
 		RequestId: ss.RequestID,
@@ -45,18 +45,11 @@ func (ss *SchemaService) GetSchema(ctx context.Context, addr string, topic strin
 		return nil, errors.New("schema response is nil")
 	}
 
-	schema := &Schema{}
 	// Convert ProtoSchema to Schema
-	if err := protoSchemaToSchema(schemaResponse, schema); err != nil {
+	schema, err := FromProtoSchema(schemaResponse)
+	if err != nil {
 		return nil, err
 	}
 
 	return schema, nil
-}
-
-// Convert ProtoSchema to Schema
-func protoSchemaToSchema(protoSchema *proto.Schema, schema *Schema) error {
-	// Implement the conversion logic here
-	// This is a placeholder; adjust based on your actual Schema type and conversion requirements
-	return nil
 }
