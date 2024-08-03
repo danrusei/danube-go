@@ -9,21 +9,21 @@ import (
 
 // SchemaService is used to interact with the schema service
 type SchemaService struct {
-	CnxManager *ConnectionManager
+	cnxManager *connectionManager
 	RequestID  uint64
 }
 
 // NewSchemaService creates a new instance of SchemaService
-func NewSchemaService(cnxManager *ConnectionManager) *SchemaService {
+func NewSchemaService(cnxManager *connectionManager) *SchemaService {
 	return &SchemaService{
-		CnxManager: cnxManager,
+		cnxManager: cnxManager,
 		RequestID:  0,
 	}
 }
 
 // GetSchema retrieves the schema for the given topic
 func (ss *SchemaService) GetSchema(ctx context.Context, addr string, topic string) (*Schema, error) {
-	conn, err := ss.CnxManager.GetConnection(ctx, addr, addr)
+	conn, err := ss.cnxManager.getConnection(addr, addr)
 	if err != nil {
 		return nil, err
 	}

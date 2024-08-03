@@ -18,18 +18,18 @@ func main() {
 	// Setup logging
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	clientBuilder := &danube.DanubeClientBuilder{}
-	clientBuilder.ServiceURL("127.0.0.1:6650")
-	client, err := clientBuilder.Build()
-	if err != nil {
-		log.Fatalf("Failed to create Danube client: %v", err)
-	}
+	client := danube.NewClient().ServiceURL("127.0.0.1:6650").Build()
 
+	ctx := context.Background()
 	topic := "/default/test_topic"
 	subType := danube.Exclusive
 
-	ctx := context.Background()
-	consumer, err := client.NewConsumer(ctx).WithConsumerName("test_consumer").WithTopic(topic).WithSubscription("test_subscription").WithSubscriptionType(subType).Build()
+	consumer, err := client.NewConsumer(ctx).
+		WithConsumerName("test_consumer").
+		WithTopic(topic).
+		WithSubscription("test_subscription").
+		WithSubscriptionType(subType).
+		Build()
 	if err != nil {
 		log.Fatalf("Failed to initialize the consumer: %v", err)
 	}

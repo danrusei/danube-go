@@ -12,7 +12,7 @@ import (
 )
 
 // RpcConnection wraps a gRPC client connection.
-type RpcConnection struct {
+type rpcConnection struct {
 	grpcConn *grpc.ClientConn
 }
 
@@ -39,7 +39,7 @@ func WithConnectionTimeout(timeout time.Duration) DialOption {
 }
 
 // NewRpcConnection creates a new RpcConnection with the given options.
-func NewRpcConnection(connectURL string, options ...DialOption) (*RpcConnection, error) {
+func newRpcConnection(connectURL string, options ...DialOption) (*rpcConnection, error) {
 	var dialOptions []grpc.DialOption
 
 	// Apply default options
@@ -54,5 +54,5 @@ func NewRpcConnection(connectURL string, options ...DialOption) (*RpcConnection,
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to connect")
 	}
-	return &RpcConnection{grpcConn: conn}, nil
+	return &rpcConnection{grpcConn: conn}, nil
 }

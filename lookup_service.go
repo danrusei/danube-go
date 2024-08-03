@@ -16,21 +16,21 @@ type LookupResult struct {
 
 // LookupService handles lookup operations
 type LookupService struct {
-	CnxManager *ConnectionManager
+	cnxManager *connectionManager
 	RequestID  atomic.Uint64
 }
 
 // NewLookupService creates a new instance of LookupService
-func NewLookupService(cnxManager *ConnectionManager) *LookupService {
+func NewLookupService(cnxManager *connectionManager) *LookupService {
 	return &LookupService{
-		CnxManager: cnxManager,
+		cnxManager: cnxManager,
 		RequestID:  atomic.Uint64{},
 	}
 }
 
 // LookupTopic performs the topic lookup request
 func (ls *LookupService) LookupTopic(ctx context.Context, addr string, topic string) (*LookupResult, error) {
-	conn, err := ls.CnxManager.GetConnection(ctx, addr, addr)
+	conn, err := ls.cnxManager.getConnection(addr, addr)
 	if err != nil {
 		return nil, err
 	}

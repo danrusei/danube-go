@@ -47,7 +47,7 @@ func newProducer(
 
 func (p *Producer) Create(ctx context.Context) (uint64, error) {
 	// Initialize the gRPC client connection
-	if err := p.connect(ctx, p.client.URI); err != nil {
+	if err := p.connect(p.client.URI); err != nil {
 		return 0, err
 	}
 
@@ -77,7 +77,7 @@ func (p *Producer) Create(ctx context.Context) (uint64, error) {
 			// Start health check service
 			stopSignal := p.stopSignal
 			go func() {
-				_ = p.client.HealthCheckService.StartHealthCheck(ctx, brokerAddr, 0, *p.producerID, stopSignal)
+				_ = p.client.healthCheckService.StartHealthCheck(ctx, brokerAddr, 0, *p.producerID, stopSignal)
 			}()
 			return *p.producerID, nil
 		}
@@ -101,7 +101,7 @@ func (p *Producer) Create(ctx context.Context) (uint64, error) {
 			}
 
 			brokerAddr = addr
-			if err := p.connect(ctx, brokerAddr); err != nil {
+			if err := p.connect(brokerAddr); err != nil {
 				return 0, err
 			}
 			p.client.URI = brokerAddr
@@ -135,8 +135,8 @@ func (p *Producer) Send(ctx context.Context, data []byte) (uint64, error) {
 	return res.SequenceId, nil
 }
 
-func (p *Producer) connect(ctx context.Context, addr string) error {
-	conn, err := p.client.ConnectionManager.GetConnection(ctx, addr, addr)
+func (p *Producer) connect(addr string) error {
+	conn, err := p.client.connectionManager.getConnection(addr, addr)
 	if err != nil {
 		return err
 	}

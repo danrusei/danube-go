@@ -1,7 +1,6 @@
 package danube
 
 import (
-	"context"
 	"sync"
 )
 
@@ -11,26 +10,26 @@ type BrokerAddress struct {
 	Proxy      bool
 }
 
-type ConnectionStatus struct {
-	Connected    *RpcConnection
+type connectionStatus struct {
+	Connected    *rpcConnection
 	Disconnected bool
 }
 
-type ConnectionManager struct {
-	connections        map[BrokerAddress]*ConnectionStatus
+type connectionManager struct {
+	connections        map[BrokerAddress]*connectionStatus
 	connection_options []DialOption
 	connectionsMutex   sync.Mutex
 }
 
 // NewConnectionManager creates a new ConnectionManager.
-func NewConnectionManager(options []DialOption) *ConnectionManager {
-	return &ConnectionManager{
-		connections:        make(map[BrokerAddress]*ConnectionStatus),
+func newConnectionManager(options []DialOption) *connectionManager {
+	return &connectionManager{
+		connections:        make(map[BrokerAddress]*connectionStatus),
 		connection_options: options,
 	}
 }
 
-func (cm *ConnectionManager) GetConnection(ctx context.Context, brokerURL, connectURL string, options ...DialOption) (*RpcConnection, error) {
+func (cm *connectionManager) getConnection(brokerURL, connectURL string, options ...DialOption) (*rpcConnection, error) {
 	cm.connectionsMutex.Lock()
 	defer cm.connectionsMutex.Unlock()
 
@@ -46,13 +45,13 @@ func (cm *ConnectionManager) GetConnection(ctx context.Context, brokerURL, conne
 		return status.Connected, nil
 	}
 
-	rpcConn, err := NewRpcConnection(connectURL, options...)
+	rpcConn, err := newRpcConnection(connectURL, options...)
 	if err != nil {
 		return nil, err
 	}
 
 	if !exists {
-		cm.connections[broker] = &ConnectionStatus{}
+		cm.connections[broker] = &connectionStatus{}
 	}
 	cm.connections[broker].Connected = rpcConn
 	return rpcConn, nil

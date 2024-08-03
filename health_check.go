@@ -9,26 +9,26 @@ import (
 	"github.com/danrusei/danube-go/proto" // Path to your generated proto package
 )
 
-type HealthCheckService struct {
-	CnxManager *ConnectionManager
+type healthCheckService struct {
+	cnxManager *connectionManager
 	RequestID  atomic.Uint64
 }
 
-func NewHealthCheckService(cnxManager *ConnectionManager) *HealthCheckService {
-	return &HealthCheckService{
-		CnxManager: cnxManager,
+func newHealthCheckService(cnxManager *connectionManager) *healthCheckService {
+	return &healthCheckService{
+		cnxManager: cnxManager,
 		RequestID:  atomic.Uint64{},
 	}
 }
 
-func (hcs *HealthCheckService) StartHealthCheck(
+func (hcs *healthCheckService) StartHealthCheck(
 	ctx context.Context,
 	addr string,
 	clientType int32,
 	clientID uint64,
 	stopSignal *atomic.Bool,
 ) error {
-	conn, err := hcs.CnxManager.GetConnection(ctx, addr, addr)
+	conn, err := hcs.cnxManager.getConnection(addr, addr)
 	if err != nil {
 		return err
 	}

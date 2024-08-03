@@ -6,25 +6,29 @@ import (
 
 type DanubeClient struct {
 	URI                string
-	ConnectionManager  *ConnectionManager
+	connectionManager  *connectionManager
 	LookupService      *LookupService
 	SchemaService      *SchemaService
-	HealthCheckService *HealthCheckService
+	healthCheckService *healthCheckService
 }
 
-func NewDanubeClient(builder DanubeClientBuilder) (*DanubeClient, error) {
-	connectionManager := NewConnectionManager(builder.ConnectionOptions)
+func NewClient() *DanubeClientBuilder {
+	return &DanubeClientBuilder{}
+}
+
+func newDanubeClient(builder DanubeClientBuilder) *DanubeClient {
+	connectionManager := newConnectionManager(builder.ConnectionOptions)
 	lookupService := NewLookupService(connectionManager)
 	schemaService := NewSchemaService(connectionManager)
-	healthCheckService := NewHealthCheckService(connectionManager)
+	healthCheckService := newHealthCheckService(connectionManager)
 
 	return &DanubeClient{
 		URI:                builder.URI,
-		ConnectionManager:  connectionManager,
+		connectionManager:  connectionManager,
 		LookupService:      lookupService,
 		SchemaService:      schemaService,
-		HealthCheckService: healthCheckService,
-	}, nil
+		healthCheckService: healthCheckService,
+	}
 }
 
 func (dc *DanubeClient) NewProducer(ctx context.Context) *ProducerBuilder {
@@ -58,6 +62,6 @@ func (b *DanubeClientBuilder) WithConnectionOptions(options []DialOption) *Danub
 	return b
 }
 
-func (b *DanubeClientBuilder) Build() (*DanubeClient, error) {
-	return NewDanubeClient(*b)
+func (b *DanubeClientBuilder) Build() *DanubeClient {
+	return newDanubeClient(*b)
 }

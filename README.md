@@ -24,46 +24,42 @@ import (
 
 func main() {
 
-    clientBuilder := &danube.DanubeClientBuilder{}
-    client, err := clientBuilder.ServiceURL("127.0.0.1:6650").Build()
-        if err != nil {
-    log.Fatalf("Failed to create Danube client: %v", err)
-    }
-
+    client := danube.NewClient().ServiceURL("127.0.0.1:6650").Build()
+    
+    ctx := context.Background()
     topic := "/default/test_topic"
     jsonSchema := `{"type": "object", "properties": {"field1": {"type": "string"}, "field2": {"type": "integer"}}}`
 
-    ctx := context.Background()
-    producer, err := client.NewProducer(ctx)
-                     .WithName("test_producer")
-                     .WithTopic(topic)
-                     .WithSchema("test_schema", danube.SchemaType_JSON, jsonSchema)
-                     .Build()
+    producer, err := client.NewProducer(ctx).
+        WithName("test_producer").
+        WithTopic(topic).
+        WithSchema("test_schema", danube.SchemaType_JSON, jsonSchema).
+        Build()
     if err != nil {
-     log.Fatalf("unable to initialize the producer: %v", err)
+        log.Fatalf("unable to initialize the producer: %v", err)
     }
 
     producerID, err := producer.Create(context.Background())
     if err != nil {
-     log.Fatalf("Failed to create producer: %v", err)
+        log.Fatalf("Failed to create producer: %v", err)
     }
     log.Printf("The Producer was created with ID: %v", producerID)
 
     data := map[string]interface{}{
-   "field1": fmt.Sprintf("value%d", i),
-   "field2": 2020 + i,
+        "field1": fmt.Sprintf("value%d", 24),
+        "field2": 2024,
      }
 
     jsonData, err := json.Marshal(data)
     if err != nil {
-     log.Fatalf("Failed to marshal data: %v", err)
+        log.Fatalf("Failed to marshal data: %v", err)
     }
 
     messageID, err := producer.Send(context.Background(), jsonData)
     if err != nil {
-     log.Fatalf("Failed to send message: %v", err)
+        log.Fatalf("Failed to send message: %v", err)
     }
-     log.Printf("The Message with id %v was sent", messageID)
+        log.Printf("The Message with id %v was sent", messageID)
 }
 
 ```
@@ -88,23 +84,20 @@ type MyMessage struct {
 
 func main() {
 
-    clientBuilder := &danube.DanubeClientBuilder{}
-    client, err := clientBuilder.ServiceURL("127.0.0.1:6650").Build()
-        if err != nil {
-    log.Fatalf("Failed to create Danube client: %v", err)
-    }
+    client := danube.NewClient().ServiceURL("127.0.0.1:6650").Build()
 
+    ctx := context.Background()
     topic := "/default/test_topic"
     subType := danube.Exclusive
 
-    ctx := context.Background()
-    consumer, err := client.NewConsumer(ctx)
-                    .WithConsumerName("test_consumer")
-                    .WithTopic(topic)
-                    .WithSubscription("test_subscription")
-                    .WithSubscriptionType(subType).Build()
-  if err != nil {
-    log.Fatalf("Failed to initialize the consumer: %v", err)
+    consumer, err := client.NewConsumer(ctx).
+        WithConsumerName("test_consumer").
+        WithTopic(topic).
+        WithSubscription("test_subscription").
+        WithSubscriptionType(subType).
+        Build()
+    if err != nil {
+        log.Fatalf("Failed to initialize the consumer: %v", err)
     }
 
     consumerID, err := consumer.Subscribe(ctx)

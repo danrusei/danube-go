@@ -14,18 +14,17 @@ func main() {
 	// Setup logging
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	clientBuilder := &danube.DanubeClientBuilder{}
-	clientBuilder.ServiceURL("127.0.0.1:6650")
-	client, err := clientBuilder.Build()
-	if err != nil {
-		log.Fatalf("Failed to create Danube client: %v", err)
-	}
+	client := danube.NewClient().ServiceURL("127.0.0.1:6650").Build()
 
+	ctx := context.Background()
 	topic := "/default/test_topic"
 	jsonSchema := `{"type": "object", "properties": {"field1": {"type": "string"}, "field2": {"type": "integer"}}}`
 
-	ctx := context.Background()
-	producer, err := client.NewProducer(ctx).WithName("test_producer").WithTopic(topic).WithSchema("test_schema", danube.SchemaType_JSON, jsonSchema).Build()
+	producer, err := client.NewProducer(ctx).
+		WithName("test_producer").
+		WithTopic(topic).
+		WithSchema("test_schema", danube.SchemaType_JSON, jsonSchema).
+		Build()
 	if err != nil {
 		log.Fatalf("unable to initialize the producer: %v", err)
 	}
