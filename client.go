@@ -2,13 +2,14 @@ package danube
 
 import (
 	"context"
+	"log"
 )
 
 type DanubeClient struct {
 	URI                string
 	connectionManager  *connectionManager
-	LookupService      *LookupService
-	SchemaService      *SchemaService
+	lookupService      *LookupService
+	schemaService      *SchemaService
 	healthCheckService *healthCheckService
 }
 
@@ -25,8 +26,8 @@ func newDanubeClient(builder DanubeClientBuilder) *DanubeClient {
 	return &DanubeClient{
 		URI:                builder.URI,
 		connectionManager:  connectionManager,
-		LookupService:      lookupService,
-		SchemaService:      schemaService,
+		lookupService:      lookupService,
+		schemaService:      schemaService,
 		healthCheckService: healthCheckService,
 	}
 }
@@ -40,16 +41,17 @@ func (dc *DanubeClient) NewConsumer(ctx context.Context) *ConsumerBuilder {
 }
 
 func (dc *DanubeClient) LookupTopic(ctx context.Context, addr string, topic string) (*LookupResult, error) {
-	return dc.LookupService.LookupTopic(ctx, addr, topic)
+	return dc.lookupService.LookupTopic(ctx, addr, topic)
 }
 
 func (dc *DanubeClient) GetSchema(ctx context.Context, topic string) (*Schema, error) {
-	return dc.SchemaService.GetSchema(ctx, dc.URI, topic)
+	return dc.schemaService.GetSchema(ctx, dc.URI, topic)
 }
 
 type DanubeClientBuilder struct {
 	URI               string
 	ConnectionOptions []DialOption
+	Logger            *log.Logger
 }
 
 func (b *DanubeClientBuilder) ServiceURL(url string) *DanubeClientBuilder {

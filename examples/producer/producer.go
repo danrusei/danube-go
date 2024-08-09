@@ -46,7 +46,7 @@ func main() {
 			log.Fatalf("Failed to marshal data: %v", err)
 		}
 
-		messageID, err := producer.Send(ctx, jsonData)
+		messageID, err := producer.Send(ctx, jsonData, nil)
 		if err != nil {
 			log.Fatalf("Failed to send message: %v", err)
 		}

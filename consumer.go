@@ -56,7 +56,7 @@ func newConsumer(
 }
 
 func (c *Consumer) Subscribe(ctx context.Context) (uint64, error) {
-	brokerAddr, err := c.client.LookupService.HandleLookup(ctx, c.client.URI, c.topicName)
+	brokerAddr, err := c.client.lookupService.HandleLookup(ctx, c.client.URI, c.topicName)
 	if err != nil {
 		return 0, err
 	}
