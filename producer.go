@@ -15,7 +15,7 @@ type Producer struct {
 	client            *DanubeClient
 	topic             string
 	producerName      string
-	producerID        *uint64
+	producerID        uint64
 	requestID         atomic.Uint64
 	messageSequenceID atomic.Uint64
 	schema            *Schema
@@ -35,7 +35,7 @@ func newProducer(
 		client:            client,
 		topic:             topic,
 		producerName:      producerName,
-		producerID:        nil,
+		producerID:        0,
 		requestID:         atomic.Uint64{},
 		messageSequenceID: atomic.Uint64{},
 		schema:            schema,
@@ -70,16 +70,19 @@ func (p *Producer) Create(ctx context.Context) (uint64, error) {
 	brokerAddr := p.client.URI
 
 	for {
-		res, err := p.streamClient.CreateProducer(ctx, req)
+		resp, err := p.streamClient.CreateProducer(ctx, req)
 		if err == nil {
-			p.producerID = &res.ProducerId
+			p.producerID = resp.ProducerId
 
 			// Start health check service
 			stopSignal := p.stopSignal
-			go func() {
-				_ = p.client.healthCheckService.StartHealthCheck(ctx, brokerAddr, 0, *p.producerID, stopSignal)
-			}()
-			return *p.producerID, nil
+
+			err = p.client.healthCheckService.StartHealthCheck(ctx, brokerAddr, 0, p.producerID, stopSignal)
+			if err != nil {
+				return 0, err
+			}
+
+			return p.producerID, nil
 		}
 
 		if status.Code(err) == codes.AlreadyExists {
@@ -122,9 +125,9 @@ func (p *Producer) Send(ctx context.Context, data []byte) (uint64, error) {
 
 	req := &proto.MessageRequest{
 		RequestId:  p.requestID.Add(1),
-		ProducerId: *p.producerID,
+		ProducerId: p.producerID,
 		Metadata:   metaData,
-		Message:    data,
+		Payload:    data,
 	}
 
 	res, err := p.streamClient.SendMessage(ctx, req)

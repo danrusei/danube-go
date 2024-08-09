@@ -33,6 +33,8 @@ func (hcs *healthCheckService) StartHealthCheck(
 		return err
 	}
 
+	log.Printf("Starting Health Check Service for: %v , with id: %d", clientType, clientID)
+
 	client := proto.NewHealthCheckClient(conn.grpcConn)
 	go func() {
 		for {

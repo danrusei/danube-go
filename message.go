@@ -16,7 +16,7 @@ type SendMessage struct {
 	RequestId  uint64
 	ProducerId uint64
 	Metadata   *MessageMetadata
-	Message    []byte
+	Payload    []byte
 }
 
 // ToProto converts SendMessage to the Protobuf MessageRequest
@@ -34,6 +34,6 @@ func (sm *SendMessage) ToProto() *proto.MessageRequest {
 		RequestId:  sm.RequestId,
 		ProducerId: sm.ProducerId,
 		Metadata:   metadata,
-		Message:    sm.Message,
+		Payload:    sm.Payload,
 	}
 }

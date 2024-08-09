@@ -130,3 +130,44 @@ func main() {
 ```
 
 ⚠️ This library is currently under active development and may have missing or incomplete functionalities. Use with caution.
+
+## Contribution
+
+### Use latest DanubeApi.proto file
+
+Make sure the proto/DanubeApi.proto is the latest from [Danube project](https://github.com/danrusei/danube/tree/main/proto).
+
+If not replace the file and add at the top of the file
+
+```bash
+option go_package = "github.com/danrusei/danube-go/proto";
+```
+
+right after the `package danube;`
+
+Make sure you have installed the protoc gen for Go:
+
+```bash
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+```
+
+And generate the Go code from the proto file:
+
+```bash
+protoc --proto_path=./proto --go_out=./proto --go-grpc_out=./proto --go_opt=paths=source_relative      --go-grpc_opt=paths=source_relative proto/DanubeApi.proto
+```
+
+### Start the Danube server
+
+Use the [instructions from the documentation](https://dev-state.com/danube_docs/) to run the Danube broker/cluster.
+
+### Run the examples
+
+```bash
+go run examples/producer/producer.go
+
+in another terminal:
+
+go run examples/consumer/consumer.go
+```

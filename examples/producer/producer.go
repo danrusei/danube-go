@@ -29,13 +29,13 @@ func main() {
 		log.Fatalf("unable to initialize the producer: %v", err)
 	}
 
-	producerID, err := producer.Create(context.Background())
+	producerID, err := producer.Create(ctx)
 	if err != nil {
 		log.Fatalf("Failed to create producer: %v", err)
 	}
 	log.Printf("The Producer was created with ID: %v", producerID)
 
-	for i := 0; i < 20; i++ {
+	for i := 0; i < 200; i++ {
 		data := map[string]interface{}{
 			"field1": fmt.Sprintf("value%d", i),
 			"field2": 2020 + i,
@@ -46,7 +46,7 @@ func main() {
 			log.Fatalf("Failed to marshal data: %v", err)
 		}
 
-		messageID, err := producer.Send(context.Background(), jsonData)
+		messageID, err := producer.Send(ctx, jsonData)
 		if err != nil {
 			log.Fatalf("Failed to send message: %v", err)
 		}

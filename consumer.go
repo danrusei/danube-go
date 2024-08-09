@@ -22,7 +22,7 @@ type Consumer struct {
 	client           *DanubeClient
 	topicName        string
 	consumerName     string
-	consumerID       *uint64
+	consumerID       uint64
 	subscription     string
 	subscriptionType SubType
 	consumerOptions  ConsumerOptions
@@ -81,14 +81,17 @@ func (c *Consumer) Subscribe(ctx context.Context) (uint64, error) {
 		return 0, err
 	}
 
+	c.consumerID = resp.GetConsumerId()
+
 	// Start health check service
 	stopSignal := c.stopSignal
-	go func() {
-		_ = c.client.healthCheckService.StartHealthCheck(ctx, brokerAddr, 0, *c.consumerID, stopSignal)
-	}()
 
-	c.consumerID = &resp.ConsumerId
-	return resp.ConsumerId, nil
+	err = c.client.healthCheckService.StartHealthCheck(ctx, brokerAddr, 0, c.consumerID, stopSignal)
+	if err != nil {
+		return 0, err
+	}
+
+	return c.consumerID, nil
 }
 
 func (c *Consumer) Receive(ctx context.Context) (proto.ConsumerService_ReceiveMessagesClient, error) {
@@ -98,7 +101,7 @@ func (c *Consumer) Receive(ctx context.Context) (proto.ConsumerService_ReceiveMe
 
 	req := &proto.ReceiveRequest{
 		RequestId:  c.requestID.Add(1),
-		ConsumerId: *c.consumerID,
+		ConsumerId: c.consumerID,
 	}
 
 	return c.streamClient.ReceiveMessages(ctx, req)

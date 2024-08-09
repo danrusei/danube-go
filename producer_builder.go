@@ -4,8 +4,8 @@ import "fmt"
 
 type ProducerBuilder struct {
 	client          *DanubeClient
-	topic           *string
-	producerName    *string
+	topic           string
+	producerName    string
 	schema          *Schema
 	producerOptions ProducerOptions
 }
@@ -13,20 +13,20 @@ type ProducerBuilder struct {
 func newProducerBuilder(client *DanubeClient) *ProducerBuilder {
 	return &ProducerBuilder{
 		client:          client,
-		topic:           nil,
-		producerName:    nil,
+		topic:           "",
+		producerName:    "",
 		schema:          nil,
 		producerOptions: ProducerOptions{},
 	}
 }
 
 func (pb *ProducerBuilder) WithTopic(topic string) *ProducerBuilder {
-	pb.topic = &topic
+	pb.topic = topic
 	return pb
 }
 
 func (pb *ProducerBuilder) WithName(producerName string) *ProducerBuilder {
-	pb.producerName = &producerName
+	pb.producerName = producerName
 	return pb
 }
 
@@ -41,17 +41,17 @@ func (pb *ProducerBuilder) WithOptions(options ProducerOptions) *ProducerBuilder
 }
 
 func (pb *ProducerBuilder) Build() (*Producer, error) {
-	if pb.topic == nil {
+	if pb.topic == "" {
 		return nil, fmt.Errorf("topic must be set")
 	}
-	if pb.producerName == nil {
+	if pb.producerName == "" {
 		return nil, fmt.Errorf("producer name must be set")
 	}
 
 	return newProducer(
 		pb.client,
-		*pb.topic,
-		*pb.producerName,
+		pb.topic,
+		pb.producerName,
 		pb.schema,
 		pb.producerOptions,
 	), nil

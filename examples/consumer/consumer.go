@@ -54,7 +54,7 @@ func main() {
 		}
 
 		var myMessage MyMessage
-		if err := json.Unmarshal(msg.GetMessages(), &myMessage); err != nil {
+		if err := json.Unmarshal(msg.GetPayload(), &myMessage); err != nil {
 			log.Printf("Failed to decode message: %v", err)
 		} else {
 			fmt.Printf("Received message: %+v\n", myMessage)
