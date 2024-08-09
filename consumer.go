@@ -84,9 +84,7 @@ func (c *Consumer) Subscribe(ctx context.Context) (uint64, error) {
 	c.consumerID = resp.GetConsumerId()
 
 	// Start health check service
-	stopSignal := c.stopSignal
-
-	err = c.client.healthCheckService.StartHealthCheck(ctx, brokerAddr, 0, c.consumerID, stopSignal)
+	err = c.client.healthCheckService.StartHealthCheck(ctx, brokerAddr, 1, c.consumerID, c.stopSignal)
 	if err != nil {
 		return 0, err
 	}

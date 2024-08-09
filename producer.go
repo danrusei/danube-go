@@ -75,9 +75,7 @@ func (p *Producer) Create(ctx context.Context) (uint64, error) {
 			p.producerID = resp.ProducerId
 
 			// Start health check service
-			stopSignal := p.stopSignal
-
-			err = p.client.healthCheckService.StartHealthCheck(ctx, brokerAddr, 0, p.producerID, stopSignal)
+			err = p.client.healthCheckService.StartHealthCheck(ctx, brokerAddr, 0, p.producerID, p.stopSignal)
 			if err != nil {
 				return 0, err
 			}
