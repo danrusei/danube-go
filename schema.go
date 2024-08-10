@@ -6,6 +6,14 @@ import (
 	"github.com/danrusei/danube-go/proto"
 )
 
+// SchemaType represents the type of schema used for data serialization and validation.
+// It defines the possible types of schemas that can be applied to data.
+//
+// Constants:
+// - SchemaType_BYTES: Represents a schema where data is in raw bytes format.
+// - SchemaType_STRING: Represents a schema where data is in string format.
+// - SchemaType_INT64: Represents a schema where data is in 64-bit integer format.
+// - SchemaType_JSON: Represents a schema where data is in JSON format.
 type SchemaType int32
 
 const (
@@ -15,12 +23,29 @@ const (
 	SchemaType_JSON   SchemaType = 3
 )
 
+// Schema represents the structure of data, including its type and associated schema data.
+// It is used to define how data should be serialized, deserialized, and validated.
+//
+// Fields:
+// - Name: The name of the schema. This is typically used for identification purposes.
+// - SchemaData: The schema data itself, which contains the schema's definition. Only used with JSON TypeSchema
+// - TypeSchema: The type of schema that determines the format of the data (e.g., JSON, STRING).
 type Schema struct {
 	Name       string
 	SchemaData []byte
 	TypeSchema SchemaType
 }
 
+// NewSchema creates a new Schema instance with the specified name, type, and optional JSON schema data.
+// It initializes the Schema with appropriate schema data based on the type.
+//
+// Parameters:
+// - name: The name assigned to the schema.
+// - schemaType: The type of schema that determines how data is structured (e.g., JSON, STRING).
+// - jsonSchema: The JSON schema data used if the schemaType is SchemaType_JSON. It is ignored for other schema types.
+//
+// Returns:
+// - *Schema: A pointer to the newly created Schema instance.
 func NewSchema(name string, schemaType SchemaType, jsonSchema string) *Schema {
 	schemaData := []byte{}
 	if schemaType == SchemaType_JSON {

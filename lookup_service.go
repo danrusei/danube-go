@@ -15,21 +15,21 @@ type LookupResult struct {
 }
 
 // LookupService handles lookup operations
-type LookupService struct {
+type lookupService struct {
 	cnxManager *connectionManager
-	RequestID  atomic.Uint64
+	requestID  atomic.Uint64
 }
 
 // NewLookupService creates a new instance of LookupService
-func NewLookupService(cnxManager *connectionManager) *LookupService {
-	return &LookupService{
+func NewLookupService(cnxManager *connectionManager) *lookupService {
+	return &lookupService{
 		cnxManager: cnxManager,
-		RequestID:  atomic.Uint64{},
+		requestID:  atomic.Uint64{},
 	}
 }
 
 // LookupTopic performs the topic lookup request
-func (ls *LookupService) LookupTopic(ctx context.Context, addr string, topic string) (*LookupResult, error) {
+func (ls *lookupService) lookupTopic(ctx context.Context, addr string, topic string) (*LookupResult, error) {
 	conn, err := ls.cnxManager.getConnection(addr, addr)
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func (ls *LookupService) LookupTopic(ctx context.Context, addr string, topic str
 	client := proto.NewDiscoveryClient(conn.grpcConn)
 
 	lookupRequest := &proto.TopicLookupRequest{
-		RequestId: ls.RequestID.Add(1),
+		RequestId: ls.requestID.Add(1),
 		Topic:     topic,
 	}
 
@@ -54,8 +54,8 @@ func (ls *LookupService) LookupTopic(ctx context.Context, addr string, topic str
 }
 
 // HandleLookup processes the lookup request and returns the appropriate URI
-func (ls *LookupService) HandleLookup(ctx context.Context, addr string, topic string) (string, error) {
-	lookupResult, err := ls.LookupTopic(ctx, addr, topic)
+func (ls *lookupService) handleLookup(ctx context.Context, addr string, topic string) (string, error) {
+	lookupResult, err := ls.lookupTopic(ctx, addr, topic)
 	if err != nil {
 		return "", err
 	}

@@ -112,7 +112,7 @@ func (p *Producer) Create(ctx context.Context) (uint64, error) {
 		if status.Code(err) == codes.Unavailable {
 			time.Sleep(2 * time.Second)
 
-			broker_addr, lookupErr := p.client.lookupService.HandleLookup(ctx, brokerAddr, p.topic)
+			broker_addr, lookupErr := p.client.lookupService.handleLookup(ctx, brokerAddr, p.topic)
 			if lookupErr != nil {
 				return 0, fmt.Errorf("lookup failed: %v", lookupErr)
 			}
