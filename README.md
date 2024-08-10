@@ -10,122 +10,88 @@ I'm working on improving and adding new features. Please feel free to contribute
 
 Check out the [example files](https://github.com/danrusei/danube-go/tree/main/examples).
 
-### Producer
+### Start the Danube server
+
+Use the [instructions from the documentation](https://dev-state.com/danube_docs/) to run the Danube broker/cluster.
+
+### Create Producer
 
 ```go
-import (
- "context"
- "encoding/json"
- "fmt"
- "log"
+client := danube.NewClient().ServiceURL("127.0.0.1:6650").Build()
 
- "github.com/danrusei/danube-go"
-)
+ctx := context.Background()
+topic := "/default/test_topic"
 
-func main() {
-
-    client := danube.NewClient().ServiceURL("127.0.0.1:6650").Build()
-    
-    ctx := context.Background()
-    topic := "/default/test_topic"
-    jsonSchema := `{"type": "object", "properties": {"field1": {"type": "string"}, "field2": {"type": "integer"}}}`
-
-    producer, err := client.NewProducer(ctx).
-        WithName("test_producer").
-        WithTopic(topic).
-        WithSchema("test_schema", danube.SchemaType_JSON, jsonSchema).
-        Build()
-    if err != nil {
-        log.Fatalf("unable to initialize the producer: %v", err)
+// create the client Producer instance
+producer, err := client.NewProducer(ctx).
+    WithName("test_producer").
+    WithTopic(topic).
+    Build()
+if err != nil {
+    log.Fatalf("unable to initialize the producer: %v", err)
     }
 
-    producerID, err := producer.Create(context.Background())
-    if err != nil {
-        log.Fatalf("Failed to create producer: %v", err)
-    }
-    log.Printf("The Producer was created with ID: %v", producerID)
-
-    data := map[string]interface{}{
-        "field1": fmt.Sprintf("value%d", 24),
-        "field2": 2024,
-     }
-
-    jsonData, err := json.Marshal(data)
-    if err != nil {
-        log.Fatalf("Failed to marshal data: %v", err)
-    }
-
-    messageID, err := producer.Send(context.Background(), jsonData)
-    if err != nil {
-        log.Fatalf("Failed to send message: %v", err)
-    }
-        log.Printf("The Message with id %v was sent", messageID)
+// create the Producer instance on the Danube cluster
+producerID, err := producer.Create(ctx)
+if err != nil {
+    log.Fatalf("Failed to create producer: %v", err)
 }
+log.Printf("The Producer was created with ID: %v", producerID)
+
+payload := fmt.Sprintf("Hello Danube %d", i)
+bytes_payload := []byte(payload)
+
+// send the message
+messageID, err := producer.Send(ctx, bytes_payload, nil)
+if err != nil {
+ log.Fatalf("Failed to send message: %v", err)
+}
+log.Printf("The Message with id %v was sent", messageID)
 
 ```
 
-### Consumer
+### Create Consumer
 
 ```go
+client := danube.NewClient().ServiceURL("127.0.0.1:6650").Build()
 
-import (
- "context"
- "encoding/json"
- "fmt"
- "log"
+ctx := context.Background()
+topic := "/default/test_topic"
+// choose Exclusive subscription, but could be Shared as well
+subType := danube.Exclusive
 
- "github.com/danrusei/danube-go"
-)
+// create the client Consumer instance
+consumer, err := client.NewConsumer(ctx).
+    WithConsumerName("test_consumer").
+    WithTopic(topic).
+    WithSubscription("test_subscription").
+    WithSubscriptionType(subType).
+    Build()
+if err != nil {
+    log.Fatalf("Failed to initialize the consumer: %v", err)
+    }
 
-type MyMessage struct {
-    Field1 string `json:"field1"`
-    Field2 int    `json:"field2"`
+// subscribe to the newly created subscription
+consumerID, err := consumer.Subscribe(ctx)
+if err != nil {
+    log.Fatalf("Failed to subscribe: %v", err)
+    }
+log.Printf("The Consumer with ID: %v was created", consumerID)
+
+// Receiving messages
+streamClient, err := consumer.Receive(ctx)
+if err != nil {
+    log.Fatalf("Failed to receive messages: %v", err)
 }
 
-func main() {
-
-    client := danube.NewClient().ServiceURL("127.0.0.1:6650").Build()
-
-    ctx := context.Background()
-    topic := "/default/test_topic"
-    subType := danube.Exclusive
-
-    consumer, err := client.NewConsumer(ctx).
-        WithConsumerName("test_consumer").
-        WithTopic(topic).
-        WithSubscription("test_subscription").
-        WithSubscriptionType(subType).
-        Build()
+for {
+    msg, err := streamClient.Recv()
     if err != nil {
-        log.Fatalf("Failed to initialize the consumer: %v", err)
-    }
-
-    consumerID, err := consumer.Subscribe(ctx)
-    if err != nil {
-        log.Fatalf("Failed to subscribe: %v", err)
-    }
-    log.Printf("The Consumer with ID: %v was created", consumerID)
-
-    // Receiving messages
-    streamClient, err := consumer.Receive(ctx)
-    if err != nil {
-        log.Fatalf("Failed to receive messages: %v", err)
-    }
-
-    for {
-        msg, err := streamClient.Recv()
-        if err != nil {
         log.Fatalf("Error receiving message: %v", err)
         break
-        }
-
-        var myMessage MyMessage
-        if err := json.Unmarshal(msg.GetMessages(), &myMessage); err != nil {
-            log.Printf("Failed to decode message: %v", err)
-        } else {
-            fmt.Printf("Received message: %+v\n", myMessage)
-        }
     }
+
+fmt.Printf("Received message: %+v\n", string(msg.GetPayload()))
 }
 ```
 
@@ -145,7 +111,7 @@ option go_package = "github.com/danrusei/danube-go/proto";
 
 right after the `package danube;`
 
-Make sure you have installed the protoc gen for Go:
+In order to generate the Go code you need the following packages installed:
 
 ```bash
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
@@ -156,18 +122,4 @@ And generate the Go code from the proto file:
 
 ```bash
 protoc --proto_path=./proto --go_out=./proto --go-grpc_out=./proto --go_opt=paths=source_relative      --go-grpc_opt=paths=source_relative proto/DanubeApi.proto
-```
-
-### Start the Danube server
-
-Use the [instructions from the documentation](https://dev-state.com/danube_docs/) to run the Danube broker/cluster.
-
-### Run the examples
-
-```bash
-go run examples/producer/producer.go
-
-in another terminal:
-
-go run examples/consumer/consumer.go
 ```
