@@ -351,17 +351,21 @@ var ConsumerService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	Discovery_TopicLookup_FullMethodName = "/danube.Discovery/TopicLookup"
-	Discovery_GetSchema_FullMethodName   = "/danube.Discovery/GetSchema"
+	Discovery_TopicLookup_FullMethodName     = "/danube.Discovery/TopicLookup"
+	Discovery_TopicPartitions_FullMethodName = "/danube.Discovery/TopicPartitions"
+	Discovery_GetSchema_FullMethodName       = "/danube.Discovery/GetSchema"
 )
 
 // DiscoveryClient is the client API for Discovery service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DiscoveryClient interface {
-	// Query the Pulsar cluster for information about a specific topic.
+	// Query the Danube broker for information about a specific topic.
 	// returns metadata about the topic, including the broker(s) responsible for it.
 	TopicLookup(ctx context.Context, in *TopicLookupRequest, opts ...grpc.CallOption) (*TopicLookupResponse, error)
+	// Query the Danube broker for information about topic partitions.
+	// returns an array with the topic partitions names
+	TopicPartitions(ctx context.Context, in *TopicLookupRequest, opts ...grpc.CallOption) (*TopicPartitionsResponse, error)
 	// Get the schema associated with the topic
 	GetSchema(ctx context.Context, in *SchemaRequest, opts ...grpc.CallOption) (*SchemaResponse, error)
 }
@@ -384,6 +388,16 @@ func (c *discoveryClient) TopicLookup(ctx context.Context, in *TopicLookupReques
 	return out, nil
 }
 
+func (c *discoveryClient) TopicPartitions(ctx context.Context, in *TopicLookupRequest, opts ...grpc.CallOption) (*TopicPartitionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TopicPartitionsResponse)
+	err := c.cc.Invoke(ctx, Discovery_TopicPartitions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *discoveryClient) GetSchema(ctx context.Context, in *SchemaRequest, opts ...grpc.CallOption) (*SchemaResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SchemaResponse)
@@ -398,9 +412,12 @@ func (c *discoveryClient) GetSchema(ctx context.Context, in *SchemaRequest, opts
 // All implementations must embed UnimplementedDiscoveryServer
 // for forward compatibility.
 type DiscoveryServer interface {
-	// Query the Pulsar cluster for information about a specific topic.
+	// Query the Danube broker for information about a specific topic.
 	// returns metadata about the topic, including the broker(s) responsible for it.
 	TopicLookup(context.Context, *TopicLookupRequest) (*TopicLookupResponse, error)
+	// Query the Danube broker for information about topic partitions.
+	// returns an array with the topic partitions names
+	TopicPartitions(context.Context, *TopicLookupRequest) (*TopicPartitionsResponse, error)
 	// Get the schema associated with the topic
 	GetSchema(context.Context, *SchemaRequest) (*SchemaResponse, error)
 	mustEmbedUnimplementedDiscoveryServer()
@@ -415,6 +432,9 @@ type UnimplementedDiscoveryServer struct{}
 
 func (UnimplementedDiscoveryServer) TopicLookup(context.Context, *TopicLookupRequest) (*TopicLookupResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TopicLookup not implemented")
+}
+func (UnimplementedDiscoveryServer) TopicPartitions(context.Context, *TopicLookupRequest) (*TopicPartitionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TopicPartitions not implemented")
 }
 func (UnimplementedDiscoveryServer) GetSchema(context.Context, *SchemaRequest) (*SchemaResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSchema not implemented")
@@ -458,6 +478,24 @@ func _Discovery_TopicLookup_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Discovery_TopicPartitions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TopicLookupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DiscoveryServer).TopicPartitions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Discovery_TopicPartitions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DiscoveryServer).TopicPartitions(ctx, req.(*TopicLookupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Discovery_GetSchema_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SchemaRequest)
 	if err := dec(in); err != nil {
@@ -486,6 +524,10 @@ var Discovery_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "TopicLookup",
 			Handler:    _Discovery_TopicLookup_Handler,
+		},
+		{
+			MethodName: "TopicPartitions",
+			Handler:    _Discovery_TopicPartitions_Handler,
 		},
 		{
 			MethodName: "GetSchema",
