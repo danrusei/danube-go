@@ -139,7 +139,7 @@ func (p *topicProducer) send(ctx context.Context, data []byte, attributes map[st
 	// Check if the stop signal indicates that the producer should be stopped
 	// this could happen due to a topic closure or movement to another broker
 	if p.stopSignal.Load() {
-		log.Println("Producer has been stopped, attempting to recreate.")
+		log.Printf("Producer %s has been stopped, attempting to recreate.", p.producerName)
 		if _, err := p.create(ctx); err != nil {
 			return 0, fmt.Errorf("failed to recreate producer: %v", err)
 		}

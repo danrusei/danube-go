@@ -16,8 +16,8 @@ func main() {
 	client := danube.NewClient().ServiceURL("127.0.0.1:6650").Build()
 
 	ctx := context.Background()
-	topic := "/default/test_topic"
-	producerName := "test_producer"
+	topic := "/default/partitioned_topic"
+	producerName := "producer_part"
 
 	producer, err := client.NewProducer(ctx).
 		WithName(producerName).

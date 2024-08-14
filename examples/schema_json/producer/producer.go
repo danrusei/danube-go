@@ -17,9 +17,9 @@ func main() {
 	client := danube.NewClient().ServiceURL("127.0.0.1:6650").Build()
 
 	ctx := context.Background()
-	topic := "/default/test_topic"
+	topic := "/default/topic_json"
 	jsonSchema := `{"type": "object", "properties": {"field1": {"type": "string"}, "field2": {"type": "integer"}}}`
-	producerName := "test_producer"
+	producerName := "producer_json"
 
 	producer, err := client.NewProducer(ctx).
 		WithName(producerName).

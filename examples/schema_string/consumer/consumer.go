@@ -15,14 +15,15 @@ func main() {
 	client := danube.NewClient().ServiceURL("127.0.0.1:6650").Build()
 
 	ctx := context.Background()
-	topic := "/default/test_topic"
-	consumerName := "test_consumer"
+	topic := "/default/topic_string"
+	consumerName := "consumer_string"
+	subscriptionName := "subscription_string"
 	subType := danube.Exclusive
 
 	consumer, err := client.NewConsumer(ctx).
 		WithConsumerName(consumerName).
 		WithTopic(topic).
-		WithSubscription("test_subscription").
+		WithSubscription(subscriptionName).
 		WithSubscriptionType(subType).
 		Build()
 	if err != nil {
