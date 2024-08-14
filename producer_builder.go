@@ -8,6 +8,7 @@ type ProducerBuilder struct {
 	client          *DanubeClient
 	topic           string
 	producerName    string
+	partitions      int32
 	schema          *Schema
 	producerOptions ProducerOptions
 }
@@ -51,6 +52,15 @@ func (pb *ProducerBuilder) WithSchema(schemaName string, schemaType SchemaType, 
 	return pb
 }
 
+// WithPartitions sets the number of topic partitions.
+//
+// Parameters:
+// - partitions: The number of partitions for a new topic.
+func (pb *ProducerBuilder) WithPartitions(partitions int32) *ProducerBuilder {
+	pb.partitions = partitions
+	return pb
+}
+
 // WithOptions sets the configuration options for the producer. This allows for customization
 // of producer behavior.
 //
@@ -78,6 +88,7 @@ func (pb *ProducerBuilder) Build() (*Producer, error) {
 	return newProducer(
 		pb.client,
 		pb.topic,
+		pb.partitions,
 		pb.producerName,
 		pb.schema,
 		pb.producerOptions,

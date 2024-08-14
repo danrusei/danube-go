@@ -3,6 +3,7 @@ package danube
 import (
 	"context"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -50,7 +51,12 @@ func newRpcConnection(connectURL string, options ...DialOption) (*rpcConnection,
 		opt(&dialOptions)
 	}
 
-	conn, err := grpc.NewClient(connectURL, dialOptions...)
+	// the server send the address with http, required by Rust tonic client
+	// therefore needs to be trimmed here
+	prefix := "http://"
+	url_trimmed := strings.TrimPrefix(connectURL, prefix)
+
+	conn, err := grpc.NewClient(url_trimmed, dialOptions...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to connect")
 	}

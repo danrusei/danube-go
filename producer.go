@@ -24,6 +24,7 @@ type Producer struct {
 func newProducer(
 	client *DanubeClient,
 	topicName string,
+	partitions int32,
 	producerName string,
 	schema *Schema,
 	producerOptions ProducerOptions,
@@ -39,7 +40,7 @@ func newProducer(
 		topicName:       topicName,
 		schema:          schema,
 		producerName:    producerName,
-		partitions:      0, // Default to 0 for non-partitioned
+		partitions:      partitions, // 0 for non-partitioned
 		messageRouter:   nil,
 		producerOptions: producerOptions,
 	}
