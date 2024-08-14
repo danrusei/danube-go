@@ -3,128 +3,131 @@ package danube
 import (
 	"context"
 	"fmt"
-	"log"
-	"sync/atomic"
-	"time"
-
-	"github.com/danrusei/danube-go/proto"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"sync"
 )
 
 // Producer represents a message producer that is responsible for sending
-// messages to a specific topic on a message broker. It handles producer
-// creation, message sending, and maintains the producer's state.
+// messages to a specific partitioned or non-partitioned topic on a message broker.
+// It handles producer creation, message sending, and maintains the producer's state.
 type Producer struct {
-	client            *DanubeClient
-	topic             string                      // name of the topic to which the producer sends messages.
-	producerName      string                      // name assigned to the producer instance.
-	producerID        uint64                      // The unique identifier for the producer, provided by broker
-	requestID         atomic.Uint64               // atomic counter for generating unique request IDs.
-	messageSequenceID atomic.Uint64               // atomic counter for generating unique message sequence IDs.
-	schema            *Schema                     // The schema that defines the structure of the messages being produced.
-	producerOptions   ProducerOptions             // Options that configure the behavior of the producer.
-	streamClient      proto.ProducerServiceClient // gRPC client used for communication with the message broker.
-	stopSignal        *atomic.Bool                // An atomic boolean signal used to indicate if the producer should stop.
+	mu              sync.Mutex
+	client          *DanubeClient
+	topicName       string          // name of the topic to which the producer sends messages.
+	schema          *Schema         // The schema that defines the structure of the messages being produced.
+	producerName    string          // name assigned to the producer instance.
+	partitions      int32           // The number of partitions for the topic
+	messageRouter   *MessageRouter  // the way the messages will be delivered to consumers
+	producers       []topicProducer // all the underhood producers, for sending messages to topic partitions
+	producerOptions ProducerOptions // Options that configure the behavior of the producer.
 }
 
 func newProducer(
 	client *DanubeClient,
-	topic string,
+	topicName string,
 	producerName string,
 	schema *Schema,
 	producerOptions ProducerOptions,
 ) *Producer {
+
+	// Set default schema if not specified
+	if schema == nil {
+		schema = &Schema{Name: "string_schema", TypeSchema: SchemaType_STRING}
+	}
+
 	return &Producer{
-		client:            client,
-		topic:             topic,
-		producerName:      producerName,
-		producerID:        0,
-		requestID:         atomic.Uint64{},
-		messageSequenceID: atomic.Uint64{},
-		schema:            schema,
-		producerOptions:   producerOptions,
-		streamClient:      nil,
-		stopSignal:        &atomic.Bool{},
+		client:          client,
+		topicName:       topicName,
+		schema:          schema,
+		producerName:    producerName,
+		partitions:      0, // Default to 0 for non-partitioned
+		messageRouter:   nil,
+		producerOptions: producerOptions,
 	}
 }
 
-// Create initializes the producer and registers it with the message broker.
-//
-// This method connects to the broker, sets up the producer with the provided schema,
-// and starts a health check service. It handles retries in case of failures and
-// updates the producerID upon successful creation.
+// Create initializes the producer and registers it with the message brokers.
 //
 // Parameters:
 // - ctx: The context for managing request lifecycle and cancellation.
 //
 // Returns:
-// - uint64: The unique ID of the created producer if successful.
 // - error: An error if producer creation fails.
-func (p *Producer) Create(ctx context.Context) (uint64, error) {
-	// Initialize the gRPC client connection
-	if err := p.connect(p.client.URI); err != nil {
-		return 0, err
-	}
+func (p *Producer) Create(ctx context.Context) error {
 
-	// Set default schema if not specified
-	schema := &Schema{Name: "string_schema", TypeSchema: SchemaType_STRING}
-	if p.schema != nil {
-		schema = p.schema
-	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
-	req := &proto.ProducerRequest{
-		RequestId:          p.requestID.Add(1),
-		ProducerName:       p.producerName,
-		TopicName:          p.topic,
-		Schema:             schema.ToProto(),
-		ProducerAccessMode: proto.ProducerAccessMode_Shared,
-	}
+	if p.partitions == 0 {
+		// Create a single TopicProducer for non-partitioned topic
+		topicProducer := newTopicProducer(
+			p.client,
+			p.topicName,
+			p.producerName,
+			p.schema,
+			p.producerOptions,
+		)
 
-	maxRetries := 4
-	attempts := 0
-	brokerAddr := p.client.URI
+		_, err := topicProducer.create(ctx)
+		if err != nil {
+			return err
+		}
 
-	for {
-		resp, err := p.streamClient.CreateProducer(ctx, req)
-		if err == nil {
-			p.producerID = resp.ProducerId
+		p.producers = append(p.producers, topicProducer)
 
-			// Start health check service
-			err = p.client.healthCheckService.StartHealthCheck(ctx, brokerAddr, 0, p.producerID, p.stopSignal)
-			if err != nil {
-				return 0, err
+	} else {
+		if p.messageRouter == nil {
+			p.messageRouter = &MessageRouter{partitions: p.partitions}
+		}
+
+		producers := make([]topicProducer, p.partitions)
+		errChan := make(chan error, p.partitions)
+		doneChan := make(chan struct{}, p.partitions)
+
+		for partitionID := int32(0); partitionID < p.partitions; partitionID++ {
+			go func(partitionID int32) {
+				defer func() { doneChan <- struct{}{} }()
+
+				// Generate the topic string with partition ID
+				topicName := fmt.Sprintf("%s-part-%d", p.topicName, partitionID)
+
+				// Generate the producer name with partition ID
+				producerName := fmt.Sprintf("%s-%d", p.producerName, partitionID)
+
+				// Create a new TopicProducer instance
+				topicProducer := newTopicProducer(
+					p.client,
+					topicName,
+					producerName,
+					p.schema,
+					p.producerOptions,
+				)
+
+				// Create the topic producer
+				_, err := topicProducer.create(ctx)
+				if err != nil {
+					errChan <- err
+					return
+				}
+
+				producers[partitionID] = topicProducer
+			}(partitionID)
+		}
+
+		// Wait for all goroutines to finish and check for errors
+		for i := int32(0); i < p.partitions; i++ {
+			select {
+			case err := <-errChan:
+				// If any error occurs, return immediately
+				return err
+			case <-doneChan:
+				// Process completion
 			}
-
-			return p.producerID, nil
 		}
 
-		if status.Code(err) == codes.AlreadyExists {
-			return 0, fmt.Errorf("producer already exists: %v", err)
-		}
-
-		attempts++
-		if attempts >= maxRetries {
-			return 0, fmt.Errorf("failed to create producer after retries: %v", err)
-		}
-
-		// Handle SERVICE_NOT_READY error
-		if status.Code(err) == codes.Unavailable {
-			time.Sleep(2 * time.Second)
-
-			broker_addr, lookupErr := p.client.lookupService.handleLookup(ctx, brokerAddr, p.topic)
-			if lookupErr != nil {
-				return 0, fmt.Errorf("lookup failed: %v", lookupErr)
-			}
-
-			if err := p.connect(broker_addr); err != nil {
-				return 0, err
-			}
-			p.client.URI = broker_addr
-		} else {
-			return 0, err
-		}
+		p.producers = producers
 	}
+
+	return nil
 }
 
 // Send sends a message to the topic associated with this producer.
@@ -142,49 +145,25 @@ func (p *Producer) Create(ctx context.Context) (uint64, error) {
 // - uint64: The sequence ID of the sent message if successful.
 // - error: An error if message sending fail
 func (p *Producer) Send(ctx context.Context, data []byte, attributes map[string]string) (uint64, error) {
-	// Check if the stop signal indicates that the producer should be stopped
-	// this could happen due to a topic closure or movement to another broker
-	if p.stopSignal.Load() {
-		log.Println("Producer has been stopped, attempting to recreate.")
-		if _, err := p.Create(ctx); err != nil {
-			return 0, fmt.Errorf("failed to recreate producer: %v", err)
-		}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	var partitionID int32
+	if p.partitions > 0 && p.messageRouter != nil {
+		// Use message router for partitioned topics
+		partitionID = p.messageRouter.RoundRobin()
+	} else {
+		partitionID = 0
 	}
 
-	// Use an empty map if attributes are nil
-	if attributes == nil {
-		attributes = make(map[string]string)
+	if partitionID >= int32(len(p.producers)) {
+		return 0, fmt.Errorf("partition ID out of range")
 	}
 
-	publishTime := uint64(time.Now().UnixNano() / int64(time.Millisecond))
-
-	metaData := &proto.MessageMetadata{
-		ProducerName: p.producerName,
-		SequenceId:   p.messageSequenceID.Add(1),
-		PublishTime:  publishTime,
-		Attributes:   attributes,
-	}
-
-	req := &proto.MessageRequest{
-		RequestId:  p.requestID.Add(1),
-		ProducerId: p.producerID,
-		Metadata:   metaData,
-		Payload:    data,
-	}
-
-	res, err := p.streamClient.SendMessage(ctx, req)
+	requestID, err := p.producers[partitionID].send(ctx, data, attributes)
 	if err != nil {
-		return 0, fmt.Errorf("failed to send message: %v", err)
+		fmt.Printf("Unable to send the data to producer: %s", p.producers[partitionID].producerName)
 	}
 
-	return res.SequenceId, nil
-}
-
-func (p *Producer) connect(addr string) error {
-	conn, err := p.client.connectionManager.getConnection(addr, addr)
-	if err != nil {
-		return err
-	}
-	p.streamClient = proto.NewProducerServiceClient(conn.grpcConn)
-	return nil
+	return requestID, nil
 }

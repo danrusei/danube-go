@@ -17,20 +17,20 @@ func main() {
 
 	ctx := context.Background()
 	topic := "/default/test_topic"
+	producerName := "test_producer"
 
 	producer, err := client.NewProducer(ctx).
-		WithName("test_producer").
+		WithName(producerName).
 		WithTopic(topic).
 		Build()
 	if err != nil {
 		log.Fatalf("unable to initialize the producer: %v", err)
 	}
 
-	producerID, err := producer.Create(ctx)
-	if err != nil {
+	if err := producer.Create(ctx); err != nil {
 		log.Fatalf("Failed to create producer: %v", err)
 	}
-	log.Printf("The Producer was created with ID: %v", producerID)
+	log.Printf("The Producer %s was created", producerName)
 
 	for i := 0; i < 200; i++ {
 
