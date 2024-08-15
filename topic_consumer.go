@@ -9,8 +9,6 @@ import (
 	"time"
 
 	"github.com/danrusei/danube-go/proto"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 // topicConsumer represents a message consumer that subscribes to a topic or topic partition and receives messages.
@@ -67,12 +65,10 @@ func (c *topicConsumer) subscribe(ctx context.Context) (uint64, error) {
 		return 0, err
 	}
 
-	conn, err := grpc.NewClient(brokerAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
+	// Initialize the gRPC client connection
+	if err := c.connect(brokerAddr); err != nil {
 		return 0, err
 	}
-
-	c.streamClient = proto.NewConsumerServiceClient(conn)
 
 	req := &proto.ConsumerRequest{
 		RequestId:        c.requestID.Add(1),
@@ -140,4 +136,13 @@ func (c *topicConsumer) receive(ctx context.Context) (proto.ConsumerService_Rece
 	}
 
 	return c.streamClient.ReceiveMessages(ctx, req)
+}
+
+func (c *topicConsumer) connect(addr string) error {
+	conn, err := c.client.connectionManager.getConnection(addr, addr)
+	if err != nil {
+		return err
+	}
+	c.streamClient = proto.NewConsumerServiceClient(conn.grpcConn)
+	return nil
 }

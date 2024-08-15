@@ -2,6 +2,7 @@ package danube
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"sync/atomic"
@@ -115,6 +116,7 @@ func (p *topicProducer) create(ctx context.Context) (uint64, error) {
 				return 0, err
 			}
 			p.client.URI = broker_addr
+			brokerAddr = broker_addr
 		} else {
 			return 0, err
 		}
@@ -164,6 +166,10 @@ func (p *topicProducer) send(ctx context.Context, data []byte, attributes map[st
 		ProducerId: p.producerID,
 		Metadata:   metaData,
 		Payload:    data,
+	}
+
+	if p.streamClient == nil {
+		return 0, errors.New("stream client not initialized")
 	}
 
 	res, err := p.streamClient.SendMessage(ctx, req)
